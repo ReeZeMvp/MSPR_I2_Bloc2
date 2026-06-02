@@ -1,0 +1,10 @@
+# Copie ce fichier en terraform.tfvars et remplace les valeurs
+
+vcenter_server     = "192.168.1.252"
+vcenter_username   = "administrator@vsphere.local"
+vcenter_password   = "CHANGE_ME"
+vcenter_datacenter = "Datacenter"
+vcenter_host       = "192.168.1.250"
+vcenter_datastore  = "datastore1"
+vcenter_network    = "VM Network"
+vm_template_name   = "Templates/tpl-ubuntu2404-k3s"
