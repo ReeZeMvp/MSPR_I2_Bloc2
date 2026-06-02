@@ -1,0 +1,69 @@
+---
+- name: Deploiement Odoo sur K3s
+  hosts: control_plane
+  become: true
+
+  vars:
+    odoo_namespace: "odoo"
+    odoo_hostname: "odoo.mspr.local"
+
+  tasks:
+    - name: Installer Helm
+      ansible.builtin.shell: |
+        curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      args:
+        creates: /usr/local/bin/helm
+
+    - name: Creer le namespace
+      ansible.builtin.command: k3s kubectl create namespace {{ odoo_namespace }}
+      register: ns_create
+      failed_when: ns_create.rc != 0 and 'already exists' not in ns_create.stderr
+      changed_when: "'created' in ns_create.stdout"
+
+    - name: Copier le chart Helm
+      ansible.builtin.copy:
+        src: ../../helm-odoo/
+        dest: /tmp/helm-odoo/
+
+    - name: Deployer Odoo via Helm
+      ansible.builtin.shell: |
+        helm upgrade --install odoo /tmp/helm-odoo \
+          --namespace {{ odoo_namespace }} \
+          --timeout 15m \
+          --wait \
+          --kubeconfig /etc/rancher/k3s/k3s.yaml
+
+    - name: Attendre que les pods soient prets
+      ansible.builtin.shell: |
+        k3s kubectl get pods -n {{ odoo_namespace }} --no-headers | grep -c "Running"
+      register: pod_count
+      retries: 30
+      delay: 15
+      until: pod_count.stdout | int >= 2
+      changed_when: false
+
+    - name: Afficher les pods
+      ansible.builtin.command: k3s kubectl get pods -n {{ odoo_namespace }} -o wide
+      register: pods_status
+      changed_when: false
+
+    - name: Pods
+      ansible.builtin.debug:
+        msg: "{{ pods_status.stdout_lines }}"
+
+    - name: Afficher l'Ingress
+      ansible.builtin.command: k3s kubectl get ingress -n {{ odoo_namespace }}
+      register: ingress_status
+      changed_when: false
+
+    - name: Ingress
+      ansible.builtin.debug:
+        msg: "{{ ingress_status.stdout_lines }}"
+
+    - name: Resume
+      ansible.builtin.debug:
+        msg:
+          - "========================================="
+          - "  Odoo deploye via Helm avec succes !"
+          - "  URL locale : http://192.168.1.48"
+          - "========================================="
