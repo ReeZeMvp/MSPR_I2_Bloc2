@@ -1,0 +1,63 @@
+---
+- name: Recuperer le token depuis le control-plane
+  hosts: control_plane
+  become: true
+
+  tasks:
+    - name: Lire le token K3s
+      ansible.builtin.slurp:
+        src: /var/lib/rancher/k3s/server/node-token
+      register: k3s_token_raw
+
+    - name: Stocker le token
+      ansible.builtin.set_fact:
+        k3s_token: "{{ k3s_token_raw.content | b64decode | trim }}"
+        k3s_server_url: "https://{{ ansible_host }}:6443"
+
+- name: Deploiement K3s - Workers
+  hosts: workers
+  become: true
+
+  tasks:
+    - name: Recuperer le token et URL du server
+      ansible.builtin.set_fact:
+        k3s_token: "{{ hostvars[groups['control_plane'][0]].k3s_token }}"
+        k3s_server_url: "{{ hostvars[groups['control_plane'][0]].k3s_server_url }}"
+
+    - name: Installer K3s agent
+      ansible.builtin.shell: |
+        curl -sfL https://get.k3s.io | sh -s - agent \
+          --server {{ k3s_server_url }} \
+          --token {{ k3s_token }} \
+          --node-name {{ inventory_hostname }}
+      args:
+        creates: /usr/local/bin/k3s-agent
+
+    - name: Verifier que l'agent est actif
+      ansible.builtin.systemd:
+        name: k3s-agent
+        state: started
+        enabled: true
+
+- name: Verification du cluster
+  hosts: control_plane
+  become: true
+
+  tasks:
+    - name: Attendre que tous les nodes soient Ready
+      ansible.builtin.shell: |
+        k3s kubectl get nodes --no-headers | grep -c "Ready"
+      register: ready_count
+      retries: 20
+      delay: 15
+      until: ready_count.stdout | int >= 3
+      changed_when: false
+
+    - name: Afficher le cluster
+      ansible.builtin.command: k3s kubectl get nodes -o wide
+      register: final_status
+      changed_when: false
+
+    - name: Cluster K3s
+      ansible.builtin.debug:
+        msg: "{{ final_status.stdout_lines }}"

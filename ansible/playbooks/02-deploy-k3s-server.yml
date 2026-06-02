@@ -1,0 +1,40 @@
+---
+- name: Deploiement K3s - Control Plane
+  hosts: control_plane
+  become: true
+
+  tasks:
+    - name: Installer K3s server
+      ansible.builtin.shell: |
+        curl -sfL https://get.k3s.io | sh -s - server \
+          --write-kubeconfig-mode 644 \
+          --tls-san {{ ansible_host }} \
+          --node-name {{ inventory_hostname }}
+      args:
+        creates: /usr/local/bin/k3s
+
+    - name: Attendre que K3s demarre
+      ansible.builtin.command: k3s kubectl get nodes
+      register: k3s_status
+      retries: 15
+      delay: 10
+      until: k3s_status.rc == 0
+      changed_when: false
+
+    - name: Recuperer le token K3s
+      ansible.builtin.slurp:
+        src: /var/lib/rancher/k3s/server/node-token
+      register: k3s_token_raw
+
+    - name: Stocker le token
+      ansible.builtin.set_fact:
+        k3s_token: "{{ k3s_token_raw.content | b64decode | trim }}"
+
+    - name: Afficher le statut
+      ansible.builtin.command: k3s kubectl get nodes -o wide
+      register: nodes_status
+      changed_when: false
+
+    - name: Statut du cluster
+      ansible.builtin.debug:
+        msg: "{{ nodes_status.stdout_lines }}"
