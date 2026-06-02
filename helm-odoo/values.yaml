@@ -1,0 +1,11 @@
+odoo:
+  image: odoo:17.0
+  password: "MSPR-Odoo-2025!"
+  email: "admin@cogip.local"
+
+postgresql:
+  image: postgres:16
+  password: "PgOdoo2025!"
+
+ingress:
+  hostname: odoo.mspr.local

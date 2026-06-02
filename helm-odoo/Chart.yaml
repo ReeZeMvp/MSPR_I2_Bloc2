@@ -1,0 +1,5 @@
+apiVersion: v2
+name: odoo
+description: Chart Helm pour deployer Odoo sur K3s
+version: 1.0.0
+appVersion: "17.0"
