@@ -1,0 +1,33 @@
+#cloud-config
+autoinstall:
+  version: 1
+  locale: en_US.UTF-8
+  keyboard:
+    layout: fr
+    variant: ""
+  identity:
+    hostname: ubuntu-template
+    username: admk3s
+    # Genere avec : mkpasswd --method=SHA-512 --rounds=4096 "K3s@MSPR2025!"
+    password: "$6$rounds=4096$REMPLACE_PAR_TON_HASH"
+  ssh:
+    install-server: true
+    allow-pw: true
+  storage:
+    layout:
+      name: lvm
+      sizing-policy: all
+  packages:
+    - openssh-server
+    - curl
+    - wget
+    - open-iscsi
+    - nfs-common
+    - qemu-guest-agent
+    - ca-certificates
+    - gnupg
+    - python3
+    - python3-apt
+  late-commands:
+    - echo 'admk3s ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/admk3s
+    - chmod 440 /target/etc/sudoers.d/admk3s

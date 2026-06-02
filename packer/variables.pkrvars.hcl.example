@@ -1,0 +1,12 @@
+# Copie ce fichier en variables.pkrvars.hcl et remplace les valeurs
+
+vcenter_server     = "192.168.1.252"
+vcenter_username   = "administrator@vsphere.local"
+vcenter_password   = "CHANGE_ME"
+vcenter_datacenter = "Datacenter"
+vcenter_host       = "192.168.1.250"
+vcenter_datastore  = "datastore1"
+vcenter_network    = "VM Network"
+iso_path           = "[datastore1] ISO/Linux/Clients/ubuntu-24.04.4-live-server-amd64.iso"
+ssh_username       = "admk3s"
+ssh_password       = "K3s@MSPR2025!"
